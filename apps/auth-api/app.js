@@ -1,14 +1,10 @@
 import express from "express";
+import authRouter from "./src/routes/auth.router.js"
 
 const app = express();
 
 app.use(express.json());
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    success: true,
-    message: "Auth API is running",
-  });
-});
+app.use("/",authRouter);
 
 export default app;
