@@ -5,6 +5,48 @@ import {
     editBlogById as editBlogRepository,
     deleteBlogById as deleteBlogRepository,
 } from "../repositories/blog.repository.js";
+import axios from "axios";
+
+
+export const getBlogComment = async (req, res) => {
+    const { id } = req.params;
+    try {
+
+        const response = await axios.get(`${process.env.COMMENT_SERVICE_URL}/${id}`);
+        return res.status(200).json({
+            success: true,
+            data: response.data,
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to get comments",
+        });
+    }
+};
+
+export const createBlogComment = async (req, res) => {
+    const { id } = req.params;
+    const { text } = req.body;
+    try {
+        const response = await axios.post(`${process.env.COMMENT_SERVICE_URL}/${id}`, {
+            text
+        });
+        return res.status(200).json({
+            success: true,
+            data: response.data,
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to get comments",
+        });
+    }
+};
 
 
 export const getALlBlogs = async (req, res) => {
