@@ -6,6 +6,8 @@ import {
     createBlog,
     editBlogById,
     deteleBlogById,
+    getBlogComment,
+    createBlogComment
 } from "../controllers/blog.controller.js";
 
 const router = Router();
@@ -19,5 +21,9 @@ router.post("/", createBlog);
 router.put("/:id", editBlogById);
 
 router.delete("/:id", deteleBlogById);
+
+router.get("/:id/comment", getBlogComment);
+
+router.post("/:id/comment", createBlogComment);
 
 export default router;
