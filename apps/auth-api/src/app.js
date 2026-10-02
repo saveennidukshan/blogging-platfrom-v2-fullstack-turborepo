@@ -1,26 +1,36 @@
 import express from "express";
-import authRouter from "./routes/auth.router.js"
-import cors from "cors"
-import morgan from "morgan"
+import cors from "cors";
 import helmet from "helmet";
+import morgan from "morgan";
+
 import { limiter } from "./middlewares/ratelimit.js";
 import { notFound } from "./middlewares/notfound.js";
+import { requestId } from "./middlewares/request.js";
+import { setRouters } from "./routes/main.router.js";
 
 const app = express();
 
-app.use(helmet())
-app.use(cors())
+// middlewares
+app.use(helmet());
 
-app.use(limiter)
+app.use(cors());
+
+app.use(requestId);
+
+app.use(morgan("dev"));
 
 app.use(express.json({
     limit: "16kb"
 }));
 
-app.use(morgan("dev"));
+app.use(limiter);
 
+//setting routes
+setRouters(app);
+
+//not found handler
 app.use(notFound);
 
-app.use("/v1/auth",authRouter);
+
 
 export default app;
