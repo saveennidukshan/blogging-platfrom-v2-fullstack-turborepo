@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
+import { randomUUID } from "node:crypto";
 import { UserModel } from "./../models/auth.model.js";
 import { generateToken } from "../utils/jwt.js";
+import producer from "../kafka.js";
+
 
 export const register = async ({ email, password, name }) => {
   const existingUser = await UserModel.findByEmail(email);
@@ -20,6 +23,28 @@ export const register = async ({ email, password, name }) => {
   });
 
   const token = generateToken(user);
+
+
+  const event = {
+      eventId: randomUUID(),
+      eventType: "user.created",
+      occurredAt: new Date().toISOString(),
+      data: {
+        email,
+        name,
+      },
+    };
+
+    await producer.send({
+      topic: "user-events",
+      acks: -1,
+      messages: [
+        {
+          key: user.email,
+          value: JSON.stringify(event),
+        },
+      ],
+    });
 
   return {
     user: {
@@ -53,6 +78,27 @@ export const login = async ({ email, password }) => {
   }
 
   const token = generateToken(user);
+
+  const event = {
+      eventId: randomUUID(),
+      eventType: "user.logged",
+      occurredAt: new Date().toISOString(),
+      data: {
+        email,
+        name:user.name,
+      },
+    };
+
+    await producer.send({
+      topic: "user-events",
+      acks: -1,
+      messages: [
+        {
+          key: user.email,
+          value: JSON.stringify(event),
+        },
+      ],
+    });
 
   return {
     user: {
