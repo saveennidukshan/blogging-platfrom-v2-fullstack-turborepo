@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { UserModel } from "./../models/auth.model.js";
-import { generateToken } from "../utils/jwt.js";
-import producer from "../kafka.js";
+import { UserModel } from "./auth.model.js";
+import { generateToken } from "./../../utils/tokenService.js";
+import { producer } from "./../../infrastructure/kafka/kafkaProducer.js";
 
 
 export const register = async ({ email, password, name }) => {

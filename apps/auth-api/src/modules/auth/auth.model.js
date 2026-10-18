@@ -1,4 +1,4 @@
-import { prisma } from "./../configs/db.config.js";
+import { prisma } from "./../../infrastructure/database/databaseConnection.js";
 
 export const UserModel = {
   findByEmail(email) {

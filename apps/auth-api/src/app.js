@@ -3,10 +3,10 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import { limiter } from "./middlewares/ratelimit.js";
-import { notFound } from "./middlewares/notfound.js";
-import { requestId } from "./middlewares/request.js";
-import { setRouters } from "./routes/main.router.js";
+import { limiter } from "./middlewares/ratelimit.middleware.js";
+import { notFound } from "./middlewares/notfound.middleware.js";
+import { requestId } from "./middlewares/requestTracker.middleware.js";
+import authRoutes from "./modules/auth/auth.router.js";
 
 // init expess app
 const app = express();
@@ -21,8 +21,8 @@ app.use(express.json({
 }));
 app.use(limiter);
 
-//setting routes
-setRouters(app);
+//setting auth routes
+app.use("/auth", authRoutes);
 
 //not found handler
 app.use(notFound);
