@@ -35,16 +35,7 @@ export const register = async ({ email, password, name }) => {
       },
     };
 
-    await producer.send({
-      topic: "user-events",
-      acks: -1,
-      messages: [
-        {
-          key: user.email,
-          value: JSON.stringify(event),
-        },
-      ],
-    });
+    
 
   return {
     user: {
