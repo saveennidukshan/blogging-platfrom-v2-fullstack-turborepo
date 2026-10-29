@@ -17,3 +17,10 @@ model User {
   updatedAt    DateTime @updatedAt
 
 }
+
+
+model auth_outbox {
+  id String @id @default(cuid())
+  email String
+  isSended Boolean @default(false)
+}

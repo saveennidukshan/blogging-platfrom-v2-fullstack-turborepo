@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import configs from "../config/dotenv.config.js";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = configs.jwt_secret_key;
 
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not defined");
@@ -14,7 +15,7 @@ export const generateToken = (user) => {
     },
     JWT_SECRET,
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+      expiresIn: configs.jwt_expires_in,
     }
   );
 };
