@@ -22,5 +22,5 @@ model User {
 model auth_outbox {
   id String @id @default(cuid())
   email String
-  isSended Boolean
+  isSended Boolean @default(false)
 }

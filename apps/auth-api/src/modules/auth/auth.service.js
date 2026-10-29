@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { UserModel } from "./auth.model.js";
 import { generateToken } from "./../../utils/tokenService.js";
 import { producer } from "./../../infrastructure/kafka/kafkaProducer.js";
+import { prisma } from "../../infrastructure/database/databaseConnection.js";
 
 
 export const register = async ({ email, password, name }) => {
@@ -16,26 +17,24 @@ export const register = async ({ email, password, name }) => {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const user = await UserModel.create({
-    email,
-    passwordHash,
-    name,
-  });
-
-  const token = generateToken(user);
-
-
-  const event = {
-      eventId: randomUUID(),
-      eventType: "user.created",
-      occurredAt: new Date().toISOString(),
+  const user = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
       data: {
         email,
+        passwordHash,
         name,
       },
-    };
+    });
 
-    
+    await tx.auth_outbox.create({
+      data:{
+        email
+      }
+    })
+    return user;
+  })
+
+  const token = generateToken(user);
 
   return {
     user: {
