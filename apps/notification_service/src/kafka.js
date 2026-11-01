@@ -9,66 +9,152 @@ const kafka = new Kafka({
 
 const consumer = kafka.consumer({
   groupId: "notification-service-group",
+  retry: {
+    retries: 10,
+    initialRetryTime: 1000,
+  },
 });
 
+let isRunning = false;
+
+async function sendMailWithRetry(email, content, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await sendMail(email, content);
+      return;
+    } catch (error) {
+      console.error(
+        `Email attempt ${attempt}/${maxRetries} failed:`,
+        error.message
+      );
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, attempt * 2000)
+      );
+    }
+  }
+}
+
+async function processEvent(event) {
+  switch (event.eventType) {
+    case "user.created": {
+      const { email, name } = event.data;
+
+      await sendMailWithRetry(
+        email,
+        `Hello ${name || "User"}, your account has been created successfully.`
+      );
+
+      break;
+    }
+
+    case "user.logged": {
+      const { email, name } = event.data;
+
+      await sendMailWithRetry(
+        email,
+        `Hello ${name || "User"}, you logged in successfully at ${event.occurredAt}.`
+      );
+
+      break;
+    }
+
+    default:
+      console.warn("Unknown event type:", event.eventType);
+  }
+}
+
 async function startConsumer() {
+  if (isRunning) return;
+
   try {
     await consumer.connect();
 
     await consumer.subscribe({
       topic: "user-events",
-      fromBeginning: false,
+      fromBeginning: true,
     });
 
     console.log("Kafka consumer connected and subscribed.");
 
+    isRunning = true;
+
     await consumer.run({
+      autoCommit: false,
       eachMessage: async ({ topic, partition, message }) => {
-        if (!message.value) return;
+        let event;
 
         try {
-          const event = JSON.parse(message.value.toString());
-
-          if (event.eventType === "user.created") {
-            const { email, name } = event.data;
-
-            console.log("New user registered:", {
-              email,
-              name,
-              eventId: event.eventId,
-            });
-
-            
-
-            await sendMail(email, `Hello ${name || "User"} your account is created successfully..`);
+          if (!message.value) {
+            throw new Error("Empty Kafka message");
           }
 
-          if (event.eventType === "user.logged") {
-            const { email, name } = event.data;
+          event = JSON.parse(message.value.toString());
 
-            console.log("New user registered:", {
-              email,
-              name,
-              eventId: event.eventId,
-            });
+          console.log("Processing event:", {
+            eventId: event.eventId,
+            eventType: event.eventType,
+            offset: message.offset,
+          });
 
-            
+          await processEvent(event);
 
-            await sendMail(email, `Hello ${name || "User"} you logged successfully at ${event.occurredAt}`);
-          }
+          await consumer.commitOffsets([
+            {
+              topic,
+              partition,
+              offset: (BigInt(message.offset) + 1n).toString(),
+            },
+          ]);
+
+          console.log("Event processed successfully:", event.eventId);
+
         } catch (error) {
-          console.error("Failed to process Kafka message:", error);
+          console.error("Failed to process Kafka message:", {
+            eventId: event?.eventId,
+            offset: message.offset,
+            error: error.message,
+          });
+
+          throw error;
         }
       },
     });
+
   } catch (error) {
-    console.error("Failed to start Kafka consumer:", error);
+    isRunning = false;
+
+    console.error("Kafka consumer error:", error);
+
     throw error;
   }
 }
 
 async function stopConsumer() {
-  await consumer.disconnect();
+  if (!isRunning) return;
+
+  isRunning = false;
+
+  try {
+    await consumer.disconnect();
+    console.log("Kafka consumer disconnected.");
+  } catch (error) {
+    console.error("Error disconnecting Kafka consumer:", error);
+  }
 }
+
+process.on("SIGINT", async () => {
+  await stopConsumer();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await stopConsumer();
+  process.exit(0);
+});
 
 export { startConsumer, stopConsumer };
