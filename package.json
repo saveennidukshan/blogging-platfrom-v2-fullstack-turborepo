@@ -1,5 +1,20 @@
 {
-  "name": "blog-v2",
+  "name": "blogging-platfrom-v2-fullstack-turborepo",
+  "version": "1.0.0",
+  "description": "A full-stack blogging platform built using a Turborepo monorepo architecture.",
+  "author": "Saveen Nidukshan",
+  "license": "MIT",
+  "keywords": [
+    "blogging-platform",
+    "fullstack",
+    "turborepo",
+    "monorepo",
+    "typescript",
+    "nodejs",
+    "nextjs",
+    "react",
+    "web-development"
+  ],
   "private": true,
   "scripts": {
     "build": "turbo run build",
