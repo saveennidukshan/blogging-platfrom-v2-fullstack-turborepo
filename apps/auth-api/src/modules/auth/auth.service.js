@@ -22,7 +22,7 @@ export const register = async ({ email, password, name }) => {
       data: {
         email,
         passwordHash,
-        name,
+        username:name,
       },
     });
 
@@ -100,3 +100,14 @@ export const login = async ({ email, password }) => {
     token,
   };
 };
+
+
+export const validateUsername = async ({ username}) => {
+  const user = await UserModel.checkUsername(username)
+  if (user) {
+    const error = new Error("username alredy used");
+    error.statusCode = 400;
+    throw error;
+  }
+  return true;
+}

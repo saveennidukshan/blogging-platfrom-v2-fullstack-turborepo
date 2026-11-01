@@ -22,7 +22,15 @@ export const UserModel = {
       data: {
         email,
         passwordHash,
-        name,
+        username: name,
+      },
+    });
+  },
+
+  checkUsername(username) {
+    return prisma.user.findUnique({
+      where: {
+        username: username,
       },
     });
   },

@@ -11,8 +11,7 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
-  name         String?
-
+  username     String   @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -20,7 +19,7 @@ model User {
 
 
 model auth_outbox {
-  id String @id @default(cuid())
-  email String
-  isSended Boolean @default(false)
+  id       String   @id @default(cuid())
+  email    String
+  isSended Boolean  @default(false)
 }
