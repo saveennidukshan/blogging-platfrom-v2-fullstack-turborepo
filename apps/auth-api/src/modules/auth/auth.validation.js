@@ -33,3 +33,17 @@ export const loginSchema = Joi.object({
   password: Joi.string()
     .required(),
 });
+
+export const usernameSchema = Joi.object({
+  username: Joi.string()
+  .pattern(/^[a-z-0-9_]+$/)
+  .min(3)
+  .max(30)
+  .required()
+  .messages({
+    "string.pattern.base": "Username can only contain simple letters, numbers, and underscores.",
+    "string.min": "Username must be at least 3 characters.",
+    "string.max": "Username cannot exceed 30 characters.",
+    "string.empty": "Username is required."
+  })
+});

@@ -27,3 +27,15 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
+
+export const usernameValidate = async (req, res, next) => {
+  try {
+    await AuthService.validateUsername(req.body);
+    return res.status(200).json({
+      success: true,
+      message: "Username Validated",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
