@@ -1,6 +1,7 @@
+import type { RequestHandler } from "express";
 import * as AuthService from "./auth.service.js";
 
-export const register = async (req, res, next) => {
+export const register: RequestHandler = async (req, res, next) => {
   try {
     const result = await AuthService.register(req.body);
 
@@ -14,7 +15,7 @@ export const register = async (req, res, next) => {
   }
 };
 
-export const login = async (req, res, next) => {
+export const login: RequestHandler = async (req, res, next) => {
   try {
     const result = await AuthService.login(req.body);
 
@@ -28,7 +29,7 @@ export const login = async (req, res, next) => {
   }
 };
 
-export const usernameValidate = async (req, res, next) => {
+export const usernameValidate: RequestHandler = async (req, res, next) => {
   try {
     await AuthService.validateUsername(req.body);
     return res.status(200).json({

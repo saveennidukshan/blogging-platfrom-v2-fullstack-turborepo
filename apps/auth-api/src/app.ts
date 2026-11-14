@@ -1,4 +1,5 @@
-import express from "express";
+
+import express, { type Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -8,24 +9,27 @@ import { notFound } from "./middlewares/notfound.middleware.js";
 import { requestId } from "./middlewares/requestTracker.middleware.js";
 import authRoutes from "./modules/auth/auth.router.js";
 
-// init expess app
-const app = express();
+// Initialize Express application
+const app: Application = express();
 
-// middlewares
+// Global middlewares
 app.use(helmet());
 app.use(cors());
 app.use(requestId);
 app.use(morgan("dev"));
-app.use(express.json({
-    limit: "16kb"
-}));
+
+app.use(
+    express.json({
+        limit: "16kb",
+    })
+);
+
 app.use(limiter);
 
-//setting auth routes
+// Auth routes
 app.use("/auth", authRoutes);
 
-//not found handler
+// Not found handler
 app.use(notFound);
-
 
 export default app;

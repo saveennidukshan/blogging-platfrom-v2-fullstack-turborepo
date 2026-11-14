@@ -52,11 +52,11 @@ async function publishOutboxEvents() {
 
       console.log("Published:", event.id);
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
-        "Failed to publish:",
-        event.id,
-        error.message
+          "Failed to publish:",
+          event.id,
+          error instanceof Error ? error.message : String(error)
       );
     }
   }
@@ -71,8 +71,8 @@ async function startWorker() {
   while (isRunning) {
     try {
       await publishOutboxEvents();
-    } catch (error) {
-      console.error("Worker error:", error.message);
+    } catch (error: unknown) {
+      console.error("Worker error:", error instanceof Error ? error.message : String(error));
     }
 
     if (isRunning) {
