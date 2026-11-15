@@ -17,7 +17,7 @@ const JWT_OPTIONS: SignOptions = {
     expiresIn: configs.jwt_expires_in as SignOptions["expiresIn"],
 };
 
-export const generateToken = (user: UserPayload): string => {
+export const generateAuthToken = (user: UserPayload): string => {
     return jwt.sign(
         {
             id: user.id,

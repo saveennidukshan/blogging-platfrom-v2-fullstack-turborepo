@@ -1,161 +1,81 @@
+import { AuthRepository } from "./auth.repository.js";
+import { PasswordHash } from "../../utils/hashing.js";
+import { generateAuthToken } from "../../utils/tokenService.js";
+import { User } from "../../../generated/prisma/client.js";
 
-import bcrypt from "bcryptjs";
-import { randomUUID } from "node:crypto";
-
-import { UserModel } from "./auth.model.js";
-import { generateToken } from "../../utils/tokenService.js";
-import { producer } from "../../infrastructure/kafka/kafkaProducer.js";
-import { prisma } from "../../infrastructure/database/databaseConnection.js";
-
-
-export interface RegisterDTO {
+export interface UserRegisterInput {
     email: string;
     password: string;
-    name: string;
-}
-
-export interface LoginDTO {
-    email: string;
-    password: string;
-}
-
-export interface ValidateUsernameDTO {
     username: string;
 }
 
-
-interface AuthUserResponse {
-    id: string;
+export interface UserLoginInput {
     email: string;
-    username: string | null;
-    createdAt: Date;
+    password: string;
 }
 
-interface AuthResponse {
-    user: AuthUserResponse;
-    token: string;
+export interface AuthUserOutput {
+    id: string
+    username: string
+    email: string
+    createdAt: Date
+    data: AuthTokens
 }
 
-
-class AppError extends Error {
-    constructor(
-        message: string,
-        public statusCode: number
-    ) {
-        super(message);
-        this.name = "AppError";
-    }
+export interface AuthTokens {
+    accessToken: string;
+    tokenType: "Bearer";
+    expiresIn: number;
 }
 
 
-export const register = async (
-    { email, password, name }: RegisterDTO
-): Promise<AuthResponse> => {
+export class AuthService {
+    constructor (
+        private readonly authRepository: AuthRepository
+    ){}
 
-    const existingUser = await UserModel.findByEmail(email);
-
-    if (existingUser) {
-        throw new AppError("Email is already registered", 409);
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    const user = await prisma.$transaction(async (tx) => {
-
-        const user = await tx.user.create({
-            data: {
-                email,
-                passwordHash,
-                username: name,
-            },
-        });
-
-        await tx.auth_outbox.create({
-            data: {
-                email,
-            },
-        });
-
-        return user;
-    });
-
-    const token = generateToken(user);
-
-    return {
-        user: {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            createdAt: user.createdAt,
-        },
-        token,
-    };
-};
-
-// Login
-export const login = async (
-    { email, password }: LoginDTO
-): Promise<AuthResponse> => {
-
-    const user = await UserModel.findByEmail(email);
-
-    if (!user) {
-        throw new AppError("Invalid email or password", 401);
-    }
-
-    const passwordValid = await bcrypt.compare(
-        password,
-        user.passwordHash
-    );
-
-    if (!passwordValid) {
-        throw new AppError("Invalid email or password", 401);
-    }
-
-    const token = generateToken(user);
-
-    const event = {
-        eventId: randomUUID(),
-        eventType: "user.logged",
-        occurredAt: new Date().toISOString(),
-        data: {
+    async registerUseCase(registerInput: UserRegisterInput): Promise<AuthUserOutput> {
+        const { email, username, password } = registerInput;
+        const existingUser = await this.authRepository.findByEmail(email);
+        if (existingUser) throw new Error("Email already exists");
+        const isUsernameValid = await this.authRepository.isUsernameAvailable(username);
+        if (!isUsernameValid)throw new Error("Username already exists");
+        const passwordHash = await PasswordHash.hash(password);
+        const createdUser = await this.authRepository.create({
             email,
-            username: user.username,
-        },
-    };
-
-    await producer.send({
-        topic: "user-events",
-        acks: -1,
-        messages: [
-            {
-                key: user.email,
-                value: JSON.stringify(event),
-            },
-        ],
-    });
-
-    return {
-        user: {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            createdAt: user.createdAt,
-        },
-        token,
-    };
-};
-
-// Validate username
-export const validateUsername = async (
-    { username }: ValidateUsernameDTO
-): Promise<boolean> => {
-
-    const user = await UserModel.checkUsername(username);
-
-    if (user) {
-        throw new AppError("Username already used", 400);
+            passwordHash,
+            username
+        });
+        const authToken = generateAuthToken({
+            id: createdUser.id,
+            email: createdUser.email
+        });
+        return this.toAuthUserOutput(createdUser, authToken);        
     }
 
-    return true;
-};
+    async loginUseCase(loginInput: UserLoginInput): Promise<AuthUserOutput>{
+        const { email, password } = loginInput;
+        const user = await this.authRepository.findByEmail(email);
+        if (!user) throw new Error("invalid credentials");
+        if (!(await PasswordHash.compare(password, user.passwordHash))) throw new Error("invalid credentials");
+        const authToken = generateAuthToken({
+            id: user.id,
+            email: user.email
+        });
+        return this.toAuthUserOutput(user, authToken); 
+    }
+
+    private toAuthUserOutput(user: User, accessToken: string): AuthUserOutput{
+        return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            createdAt: user.createdAt,
+            data: {
+                accessToken,
+                tokenType: "Bearer",
+                expiresIn: 900
+            }
+        }
+    }
+}
