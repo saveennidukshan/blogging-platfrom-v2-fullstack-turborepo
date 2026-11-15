@@ -18,7 +18,7 @@ export const registerSchema = Joi.object({
       "any.required": "Password is required",
     }),
 
-  name: Joi.string()
+  username: Joi.string()
     .min(2)
     .max(100)
     .optional()

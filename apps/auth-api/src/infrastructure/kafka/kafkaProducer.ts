@@ -1,5 +1,12 @@
-import { Kafka } from "kafkajs";
+import { Kafka, type RecordMetadata } from "kafkajs";
 import configs from "../../config/dotenv.config.js";
+
+interface DomainEvent {
+    eventId: string;
+    type: string;
+    version?: number;
+    [key: string]: unknown;
+}
 
 const kafka = new Kafka({
   clientId: "auth-api",
@@ -19,7 +26,7 @@ export async function disconnectKafka() {
   console.log("❌ Kafka disconnected");
 }
 
-export async function produceEvent(topic, key, event) {
+export async function produceEvent(topic: string, key: string | number, event: DomainEvent): Promise<RecordMetadata[]> {
 
   return producer.send({
     topic,

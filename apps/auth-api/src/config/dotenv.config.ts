@@ -6,7 +6,7 @@ export const configs = {
     db_connection_string: process.env.DATABASE_URL,
     jwt_secret_key: process.env.JWT_SECRET,
     jwt_expires_in: process.env.JWT_EXPIRES_IN || "7d",
-    kafka_url: process.env.KAFKA_CONN_URL,
+    kafka_url: process.env.KAFKA_CONN_URL || "localhost:9092",
     app_environment: process.env.APP_ENV || "prod"
 }
 
