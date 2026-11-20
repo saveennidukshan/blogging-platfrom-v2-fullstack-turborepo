@@ -1,4 +1,5 @@
-import type { User } from "../../../generated/prisma/client.js";
+import type { User, RfTokens } from "../../../generated/prisma/client.js";
+import { Metadata } from "./auth.types.js";
 
 export interface UserCreateInput {
     email: string;
@@ -11,4 +12,5 @@ export interface AuthRepository {
     findById(id: string): Promise<User | null>;
     isUsernameAvailable(username: string): Promise<Boolean>;
     create(data: UserCreateInput): Promise<User>;
+    insertRfToken(userId: string, tokenHash: string, metadata: Metadata): Promise<RfTokens>;
 }
