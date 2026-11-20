@@ -21,7 +21,7 @@ export const registerSchema = Joi.object({
   username: Joi.string()
     .min(2)
     .max(100)
-    .optional()
+    .required()
     .allow(null, ""),
 });
 
