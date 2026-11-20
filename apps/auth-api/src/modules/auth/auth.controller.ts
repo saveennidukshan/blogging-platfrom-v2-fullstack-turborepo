@@ -6,22 +6,28 @@ export const createAuthController = (
     authService: AuthService
 ) => {
     const register: RequestHandler = async (req, res) => {
-        const result = await authService.registerUseCase(req.body as UserRegisterInput);
-        setAuthCookies(res, result.data.accessToken);
+        const { data, rfToken } = await authService.registerUseCase(req.body as UserRegisterInput);
+        setAuthCookies(res, rfToken);
         return res.status(201).json({
             success: true,
             message: "User registered successfully",
-            data: result,
+            data,
+            meta:{
+                requestId: res.locals.requestId
+            }
         });
     };
 
     const login: RequestHandler = async (req, res) => {
-        const result = await authService.loginUseCase(req.body as UserLoginInput);
-        setAuthCookies(res, result.data.accessToken);
+        const { data, rfToken } = await authService.loginUseCase(req.body as UserLoginInput);
+        setAuthCookies(res, rfToken);
         return res.status(200).json({
             success: true,
             message: "User logged successfully",
-            data: result,
+            data,
+            meta:{
+                requestId: res.locals.requestId
+            }
         });
     }
 

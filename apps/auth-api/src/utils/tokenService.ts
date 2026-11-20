@@ -1,29 +1,68 @@
 
 import jwt, { type SignOptions } from "jsonwebtoken";
+import crypto from "node:crypto";
+
 import configs from "../config/dotenv.config.js";
 
-export interface UserPayload {
-    id: string;
-    email: string;
+export interface Tokens {
+    accessToken: string;
+    rfToken: string;
 }
 
-const JWT_SECRET = configs.jwt_secret_key;
+const ACCESS_SECRET = configs.jwt_access_secret;
+const REFRESH_SECRET = configs.jwt_refresh_secret;
 
-if (!JWT_SECRET) {
-    throw new Error("JWT_SECRET is not defined");
+const JWT_ISS = configs.jwt_issuer;
+
+if (!ACCESS_SECRET || !REFRESH_SECRET || !JWT_ISS) {
+    throw new Error("JWT configuration is missing");
 }
 
-const JWT_OPTIONS: SignOptions = {
-    expiresIn: configs.jwt_expires_in as SignOptions["expiresIn"],
+const JWT_ACCESS_OPTIONS: SignOptions = {
+    expiresIn: configs.jwt_auth_expires_in as SignOptions["expiresIn"],
+    issuer: JWT_ISS,
+    audience: "auth-service",
+    algorithm: "HS256",
 };
 
-export const generateAuthToken = (user: UserPayload): string => {
-    return jwt.sign(
+const JWT_REFRESH_OPTIONS: SignOptions = {
+    expiresIn: configs.jwt_rf_expires_in as SignOptions["expiresIn"],
+    issuer: JWT_ISS,
+    audience: "auth-service",
+    algorithm: "HS256",
+};
+
+interface TokenUser {
+    id: string;
+}
+
+export const generateTokens = (user: TokenUser): Tokens => {
+
+    const accessToken = jwt.sign(
         {
-            id: user.id,
-            email: user.email,
+            type: "auth",
         },
-        JWT_SECRET,
-        JWT_OPTIONS
+        ACCESS_SECRET,
+        {
+            ...JWT_ACCESS_OPTIONS,
+            subject: user.id,
+        }
     );
+
+    const rfToken = jwt.sign(
+        {
+            type: "refresh",
+        },
+        REFRESH_SECRET,
+        {
+            ...JWT_REFRESH_OPTIONS,
+            subject: user.id,
+            jwtid: crypto.randomUUID(),
+        }
+    );
+
+    return {
+        accessToken,
+        rfToken,
+    };
 };

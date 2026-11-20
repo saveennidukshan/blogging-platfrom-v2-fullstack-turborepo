@@ -1,6 +1,6 @@
 import { AuthRepository } from "./auth.repository.js";
 import { PasswordHash } from "../../utils/hashing.js";
-import { generateAuthToken } from "../../utils/tokenService.js";
+import { generateTokens } from "../../utils/tokenService.js";
 import { User } from "../../../generated/prisma/client.js";
 
 export interface UserRegisterInput {
@@ -14,12 +14,17 @@ export interface UserLoginInput {
     password: string;
 }
 
-export interface AuthUserOutput {
+export interface AuthData {
     id: string
     username: string
     email: string
     createdAt: Date
-    data: AuthTokens
+    authentication: AuthTokens
+}
+
+export interface AuthUserOutput {
+    data: AuthData
+    rfToken: string
 }
 
 export interface AuthTokens {
@@ -34,46 +39,46 @@ export class AuthService {
         private readonly authRepository: AuthRepository
     ){}
 
-    async registerUseCase(registerInput: UserRegisterInput): Promise<AuthUserOutput> {
+    async registerUseCase (registerInput: UserRegisterInput): Promise<AuthUserOutput> {
         const { email, username, password } = registerInput;
         const existingUser = await this.authRepository.findByEmail(email);
         if (existingUser) throw new Error("Email already exists");
         const isUsernameValid = await this.authRepository.isUsernameAvailable(username);
-        if (!isUsernameValid)throw new Error("Username already exists");
+        if (!isUsernameValid) throw new Error("Username already exists");
         const passwordHash = await PasswordHash.hash(password);
         const createdUser = await this.authRepository.create({
             email,
             passwordHash,
             username
         });
-        const authToken = generateAuthToken({
-            id: createdUser.id,
-            email: createdUser.email
-        });
-        return this.toAuthUserOutput(createdUser, authToken);        
+        const tokens = generateTokens(createdUser);
+        return {
+            data: this.toAuthUserOutput(createdUser, tokens.accessToken),
+            rfToken: tokens.rfToken
+        }    
     }
 
-    async loginUseCase(loginInput: UserLoginInput): Promise<AuthUserOutput>{
+    async loginUseCase (loginInput: UserLoginInput): Promise<AuthUserOutput>{
         const { email, password } = loginInput;
         const user = await this.authRepository.findByEmail(email);
         if (!user) throw new Error("invalid credentials");
         if (!(await PasswordHash.compare(password, user.passwordHash))) throw new Error("invalid credentials");
-        const authToken = generateAuthToken({
-            id: user.id,
-            email: user.email
-        });
-        return this.toAuthUserOutput(user, authToken); 
+        const tokens = generateTokens(user);
+        return {
+            data: this.toAuthUserOutput(user, tokens.accessToken),
+            rfToken: tokens.rfToken
+        }
     }
 
-    private toAuthUserOutput(user: User, accessToken: string): AuthUserOutput{
+    private toAuthUserOutput(user: User, accessToken: string): AuthData{
         return {
             id: user.id,
             username: user.username,
             email: user.email,
             createdAt: user.createdAt,
-            data: {
-                accessToken,
+            authentication: {
                 tokenType: "Bearer",
+                accessToken,
                 expiresIn: 900
             }
         }

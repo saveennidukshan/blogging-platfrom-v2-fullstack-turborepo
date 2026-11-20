@@ -22,7 +22,7 @@ let shuttingDown = false;
 async function startServer(): Promise<void> {
     try {
         await connectDatabase();
-        await connectKafka();
+        //await connectKafka();
 
         server = app.listen(PORT, () => {
             console.log(`Auth API running on port ${PORT}`);
@@ -63,7 +63,7 @@ async function shutdown(): Promise<void> {
     }
 
     const results = await Promise.allSettled([
-        disconnectKafka(),
+        //disconnectKafka(),
         disconnectDatabase(),
     ]);
 

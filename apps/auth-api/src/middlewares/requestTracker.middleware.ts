@@ -3,18 +3,15 @@ import { randomUUID } from "node:crypto";
 
 declare global {
     namespace Express {
-        interface Request {
-            id: string;
+        interface Locals {
+            requestId: string;
         }
     }
 }
 
 export const requestId: RequestHandler = (req, res, next) => {
     const reqId = randomUUID();
-
     res.setHeader("X-Request-Id", reqId);
-
-    req.id = reqId;
-
+    res.locals.requestId = reqId;
     next();
 };

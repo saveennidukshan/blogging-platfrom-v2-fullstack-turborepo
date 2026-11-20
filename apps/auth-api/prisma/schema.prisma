@@ -7,19 +7,75 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  username     String   @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+enum Role {
+  USER
+  ADMIN
 }
 
+enum LoginType {
+  DEFAULT
+  GOOGLE
+}
 
-model auth_outbox {
-  id       String   @id @default(cuid())
-  email    String
-  isSended Boolean  @default(false)
+enum EmailStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  username     String  @unique
+
+  role       Role      @default(USER)
+  isVerified Boolean   @default(false)
+  loginType  LoginType @default(DEFAULT)
+
+  refreshTokens RfTokens[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+model RfTokens {
+  id        String @id @default(uuid())
+  tokenHash String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userIp    String?
+  userAgent String?
+
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuthOutbox {
+  eventId String @id @default(uuid())
+
+  username  String
+  userEmail String
+  userIp    String?
+  userAgent String?
+
+  status EmailStatus @default(PENDING)
+
+  retryCount  Int       @default(0)
+  lastError   String?
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
 }
