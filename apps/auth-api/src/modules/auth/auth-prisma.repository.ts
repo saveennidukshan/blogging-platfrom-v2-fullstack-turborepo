@@ -68,4 +68,52 @@ export class PrismaAuthRepository implements AuthRepository {
             }
         });
     }
+
+
+async createWithAuthData(
+    data: UserCreateInput,
+    tokenID: string,
+    tokenHash: string,
+    metadata: Metadata
+): Promise<{
+    user: User;
+    refreshToken: RfTokens;
+}> {
+    return prisma.$transaction(async (tx) => {
+
+        // 1. Create user
+        const user = await tx.user.create({
+            data,
+        });
+
+        // 2. Save refresh token
+        const refreshToken = await tx.rfTokens.create({
+            data: {
+                id: tokenID,
+                tokenHash,
+                userId: user.id,
+                userIp: metadata.userIp,
+                userAgent: metadata.userAgent,
+                expiresAt: new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000
+                ),
+            },
+        });
+
+        // 3. Insert outbox event
+        await tx.authOutbox.create({
+            data: {
+                username: user.username,
+                userEmail: user.email,
+                userIp: metadata.userIp,
+                userAgent: metadata.userAgent,
+            },
+        });
+
+        return {
+            user,
+            refreshToken,
+        };
+    });
+}
 }

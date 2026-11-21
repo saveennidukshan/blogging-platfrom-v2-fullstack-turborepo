@@ -9,33 +9,33 @@ export class AuthService {
         private readonly authRepository: AuthRepository
     ){}
 
-    async registerUseCase (registerInput: UserRegisterInput, metadata: Metadata): Promise<AuthUserOutput> {
-        const { email, username, password } = registerInput;
-        const existingUser = await this.authRepository.findByEmail(email);
-        if (existingUser) throw new Error("Email already exists");
-        const isUsernameValid = await this.authRepository.isUsernameAvailable(username);
-        if (!isUsernameValid) throw new Error("Username already exists");
-        const passwordHash = await PasswordHash.hash(password);
-        const createdUser = await this.authRepository.create({
+    async registerUseCase( registerInput: UserRegisterInput, metadata: Metadata ): Promise<AuthUserOutput> {
+    const { email, username, password } = registerInput;
+    const existingUser = await this.authRepository.findByEmail(email);
+    if (existingUser) throw new Error("Email already exists");
+    const isUsernameValid = await this.authRepository.isUsernameAvailable(username);
+    if (!isUsernameValid) throw new Error("Username already exists");
+    const userId = crypto.randomUUID();
+    const tokenId = crypto.randomUUID();
+    const passwordHash = await PasswordHash.hash(password);
+    const tokens = generateTokens(userId, tokenId);
+    const tokenHash = await PasswordHash.hash(tokens.rfToken);
+    const { user } = await this.authRepository.createWithAuthData(
+        {
+            id: userId,
             email,
-            passwordHash,
-            username
-        });
-        const tokenId = crypto.randomUUID()
-        const tokens = generateTokens(createdUser.id, tokenId);
-        const tokenHash = await PasswordHash.hash(tokens.rfToken)
-        const insertedToken = await this.authRepository.insertRfToken(
-            createdUser.id,
-            tokenId,
-            tokenHash,
-            metadata
-        )
-        if (!insertedToken) throw new Error("Token insertion failed");
-        return {
-            data: this.toAuthUserOutput(createdUser, tokens.accessToken),
-            rfToken: tokens.rfToken
-        }    
-    }
+            username,
+            passwordHash
+        },
+        tokenId,
+        tokenHash,
+        metadata
+    );
+    return {
+        data: this.toAuthUserOutput(user, tokens.accessToken),
+        rfToken: tokens.rfToken
+    };
+}
 
     async loginUseCase (loginInput: UserLoginInput, metadata: Metadata): Promise<AuthUserOutput>{
         const { email, password } = loginInput;
