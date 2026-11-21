@@ -1,11 +1,12 @@
 import { prisma } from "../../infrastructure/database/databaseConnection.js";
 
-import type { User } from "../../../generated/prisma/client.js";
+import type { User, RfTokens } from "../../../generated/prisma/client.js";
 
 import type {
     AuthRepository,
-    UserCreateInput,
+    UserCreateInput
 } from "./auth.repository.js";
+import { Metadata } from "./auth.types.js";
 
 
 export class PrismaAuthRepository implements AuthRepository {
@@ -33,6 +34,38 @@ export class PrismaAuthRepository implements AuthRepository {
     async create(data: UserCreateInput): Promise<User> {
         return prisma.user.create({
             data,
+        });
+    }
+
+    async insertRfToken(userId: string, tokenID: string, tokenHash: string, metadata: Metadata): Promise<RfTokens>{
+        return prisma.rfTokens.create({
+        data: {
+            id: tokenID,
+            tokenHash,
+            userId,
+            userIp: metadata.userIp,
+            userAgent: metadata.userAgent,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+    });
+    }
+
+    async findTokenById(id: string): Promise<RfTokens | null> {
+        return prisma.rfTokens.findUnique({
+            where: {
+                id
+            }
+        });
+    }
+
+    async updateTokenById(id: string, tokenHash: string): Promise<RfTokens | null> {
+        return prisma.rfTokens.update({
+            where: {
+                id
+            },
+            data:{
+                tokenHash
+            }
         });
     }
 }

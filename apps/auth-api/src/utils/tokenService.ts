@@ -32,11 +32,8 @@ const JWT_REFRESH_OPTIONS: SignOptions = {
     algorithm: "HS256",
 };
 
-interface TokenUser {
-    id: string;
-}
 
-export const generateTokens = (user: TokenUser): Tokens => {
+export const generateTokens = (userId: string, tokenId: string): Tokens => {
 
     const accessToken = jwt.sign(
         {
@@ -45,7 +42,7 @@ export const generateTokens = (user: TokenUser): Tokens => {
         ACCESS_SECRET,
         {
             ...JWT_ACCESS_OPTIONS,
-            subject: user.id,
+            subject: userId,
         }
     );
 
@@ -56,8 +53,8 @@ export const generateTokens = (user: TokenUser): Tokens => {
         REFRESH_SECRET,
         {
             ...JWT_REFRESH_OPTIONS,
-            subject: user.id,
-            jwtid: crypto.randomUUID(),
+            subject: userId,
+            jwtid: tokenId,
         }
     );
 
@@ -65,4 +62,8 @@ export const generateTokens = (user: TokenUser): Tokens => {
         accessToken,
         rfToken,
     };
+};
+
+export const validateTokens = (token: string): any => {
+    return jwt.verify(token, REFRESH_SECRET)
 };

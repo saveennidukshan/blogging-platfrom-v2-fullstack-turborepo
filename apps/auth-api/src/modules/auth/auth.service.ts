@@ -2,44 +2,14 @@ import { AuthRepository } from "./auth.repository.js";
 import { PasswordHash } from "../../utils/hashing.js";
 import { generateTokens } from "../../utils/tokenService.js";
 import { User } from "../../../generated/prisma/client.js";
-
-export interface UserRegisterInput {
-    email: string;
-    password: string;
-    username: string;
-}
-
-export interface UserLoginInput {
-    email: string;
-    password: string;
-}
-
-export interface AuthData {
-    id: string
-    username: string
-    email: string
-    createdAt: Date
-    authentication: AuthTokens
-}
-
-export interface AuthUserOutput {
-    data: AuthData
-    rfToken: string
-}
-
-export interface AuthTokens {
-    accessToken: string;
-    tokenType: "Bearer";
-    expiresIn: number;
-}
-
+import type { UserRegisterInput, Metadata, AuthUserOutput, UserLoginInput, AuthData, RefreshUserOutput } from "./auth.types.js";
 
 export class AuthService {
     constructor (
         private readonly authRepository: AuthRepository
     ){}
 
-    async registerUseCase (registerInput: UserRegisterInput): Promise<AuthUserOutput> {
+    async registerUseCase (registerInput: UserRegisterInput, metadata: Metadata): Promise<AuthUserOutput> {
         const { email, username, password } = registerInput;
         const existingUser = await this.authRepository.findByEmail(email);
         if (existingUser) throw new Error("Email already exists");
@@ -51,23 +21,63 @@ export class AuthService {
             passwordHash,
             username
         });
-        const tokens = generateTokens(createdUser);
+        const tokenId = crypto.randomUUID()
+        const tokens = generateTokens(createdUser.id, tokenId);
+        const tokenHash = await PasswordHash.hash(tokens.rfToken)
+        const insertedToken = await this.authRepository.insertRfToken(
+            createdUser.id,
+            tokenId,
+            tokenHash,
+            metadata
+        )
+        if (!insertedToken) throw new Error("Token insertion failed");
         return {
             data: this.toAuthUserOutput(createdUser, tokens.accessToken),
             rfToken: tokens.rfToken
         }    
     }
 
-    async loginUseCase (loginInput: UserLoginInput): Promise<AuthUserOutput>{
+    async loginUseCase (loginInput: UserLoginInput, metadata: Metadata): Promise<AuthUserOutput>{
         const { email, password } = loginInput;
         const user = await this.authRepository.findByEmail(email);
         if (!user) throw new Error("invalid credentials");
         if (!(await PasswordHash.compare(password, user.passwordHash))) throw new Error("invalid credentials");
-        const tokens = generateTokens(user);
+        const tokenId = crypto.randomUUID()
+        const tokens = generateTokens(user.id, tokenId);
+        const tokenHash = await PasswordHash.hash(tokens.rfToken)
+        const insertedToken = await this.authRepository.insertRfToken(
+            user.id,
+            tokenId,
+            tokenHash,
+            metadata
+        )
+        if (!insertedToken) throw new Error("Token insertion failed");
         return {
             data: this.toAuthUserOutput(user, tokens.accessToken),
             rfToken: tokens.rfToken
         }
+    }
+
+    async tokenRefreshUseCase (token: string, tokenId: string, metadata: Metadata): Promise<RefreshUserOutput> {
+        const tokenFromDB = await this.authRepository.findTokenById(tokenId);
+        if(!tokenFromDB || tokenFromDB.revokedAt !== null) throw new Error("Token error");
+        if(!await PasswordHash.compare(token, tokenFromDB.tokenHash)) throw new Error("Token error");
+        const tokens = generateTokens(tokenFromDB.userId, tokenId);
+        const tokenHash = await PasswordHash.hash(tokens.rfToken)
+        const insertedToken = await this.authRepository.updateTokenById(
+            tokenId,
+            tokenHash
+        )
+        if (!insertedToken) throw new Error("Token insertion failed");
+        return {
+            data: {
+                tokenType: "Bearer",
+                accessToken: tokens.accessToken,
+                expiresIn: 900
+            },
+            rfToken: tokens.rfToken
+        }
+
     }
 
     private toAuthUserOutput(user: User, accessToken: string): AuthData{
