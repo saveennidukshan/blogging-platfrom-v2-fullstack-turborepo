@@ -40,5 +40,22 @@ export const createAuthController = (
         });
     }
 
-    return { register, login };
+    const refresh: RequestHandler = async (req, res) => {
+        const metadata: Metadata = {
+            userIp: req.ip,
+            userAgent: req.get("user-agent") ?? undefined,
+        };
+        const { data, rfToken } = await authService.tokenRefreshUseCase(req.cookies.rfToken, res.locals.tokenId, metadata);
+        setAuthCookies(res, rfToken);
+        return res.status(200).json({
+            success: true,
+            message: "User refreshed successfully",
+            data,
+            meta:{
+                requestId: res.locals.requestId
+            }
+        });
+    }
+
+    return { register, login, refresh };
 };

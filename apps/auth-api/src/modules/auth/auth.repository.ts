@@ -12,5 +12,7 @@ export interface AuthRepository {
     findById(id: string): Promise<User | null>;
     isUsernameAvailable(username: string): Promise<Boolean>;
     create(data: UserCreateInput): Promise<User>;
-    insertRfToken(userId: string, tokenHash: string, metadata: Metadata): Promise<RfTokens>;
+    insertRfToken(userId: string, tokenId: string, tokenHash: string, metadata: Metadata): Promise<RfTokens>;
+    findTokenById(id: string): Promise<RfTokens | null>;
+    updateTokenById(id: string, tokenHash: string): Promise<RfTokens | null>;
 }

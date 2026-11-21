@@ -24,10 +24,10 @@ enum EmailStatus {
 }
 
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
-  username     String  @unique
+  username     String @unique
 
   role       Role      @default(USER)
   isVerified Boolean   @default(false)
@@ -42,7 +42,7 @@ model User {
 }
 
 model RfTokens {
-  id        String @id @default(uuid())
+  id        String @id
   tokenHash String @unique
 
   userId String

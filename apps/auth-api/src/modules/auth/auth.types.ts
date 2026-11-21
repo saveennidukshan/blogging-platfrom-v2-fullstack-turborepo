@@ -27,6 +27,11 @@ export interface AuthUserOutput {
     rfToken: string;
 }
 
+export interface RefreshUserOutput {
+    data: AuthTokens;
+    rfToken: string;
+}
+
 export interface AuthTokens {
     accessToken: string;
     tokenType: "Bearer";
