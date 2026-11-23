@@ -18,6 +18,7 @@ export interface AuthRepository {
     updateTokenById(id: string, tokenHash: string): Promise<RfTokens | null>;
     createWithAuthData(
     data: UserCreateInput,
+    eventType: string,
     tokenID: string,
     tokenHash: string,
     metadata: Metadata

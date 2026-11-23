@@ -72,6 +72,7 @@ export class PrismaAuthRepository implements AuthRepository {
 
 async createWithAuthData(
     data: UserCreateInput,
+    eventType: string,
     tokenID: string,
     tokenHash: string,
     metadata: Metadata
@@ -103,6 +104,7 @@ async createWithAuthData(
         // 3. Insert outbox event
         await tx.authOutbox.create({
             data: {
+                eventType,
                 username: user.username,
                 userEmail: user.email,
                 userIp: metadata.userIp,

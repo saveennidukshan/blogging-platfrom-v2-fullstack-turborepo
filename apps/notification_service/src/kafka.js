@@ -40,13 +40,14 @@ async function sendMailWithRetry(email, content, maxRetries = 3) {
 }
 
 async function processEvent(event) {
-  switch (event.eventType) {
-    case "user.created": {
-      const { email, name } = event.data;
-
+  switch (event.payload.after.eventType) {
+    case "REGISTER": {
+      const { userEmail, username } = event.payload.after;
+      console.log(`Hello ${username || "User"}, your account has been created successfully.`);
+      
       await sendMailWithRetry(
-        email,
-        `Hello ${name || "User"}, your account has been created successfully.`
+        userEmail,
+        `Hello ${username || "User"}, your account has been created successfully.`
       );
 
       break;
@@ -75,7 +76,7 @@ async function startConsumer() {
     await consumer.connect();
 
     await consumer.subscribe({
-      topic: "user-events",
+      topic: "blog.public.AuthOutbox",
       fromBeginning: true,
     });
 
@@ -110,8 +111,6 @@ async function startConsumer() {
               offset: (BigInt(message.offset) + 1n).toString(),
             },
           ]);
-
-          console.log("Event processed successfully:", event.eventId);
 
         } catch (error) {
           console.error("Failed to process Kafka message:", {

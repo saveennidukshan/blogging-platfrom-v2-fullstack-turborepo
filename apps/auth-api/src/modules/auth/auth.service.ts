@@ -27,6 +27,7 @@ export class AuthService {
             username,
             passwordHash
         },
+        "REGISTER",
         tokenId,
         tokenHash,
         metadata
