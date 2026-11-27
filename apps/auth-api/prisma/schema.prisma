@@ -23,6 +23,11 @@ enum EmailStatus {
   FAILED
 }
 
+enum EventType {
+  LOGIN
+  REGISTER
+}
+
 model User {
   id           String @id @default(uuid())
   email        String @unique
@@ -62,7 +67,7 @@ model RfTokens {
 
 model AuthOutbox {
   eventId String @id @default(uuid())
-
+  eventType String? 
   username  String
   userEmail String
   userIp    String?
