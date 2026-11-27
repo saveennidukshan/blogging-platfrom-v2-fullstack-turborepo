@@ -1,4 +1,6 @@
 # Dependencies
+docker-compose.yml
+kafka-connect
 node_modules
 .pnp
 .pnp.js
